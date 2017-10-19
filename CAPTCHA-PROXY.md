@@ -46,7 +46,9 @@ $ wstunnel -s 0.0.0.0:8022 -t example.com:22
 #### サーバ側 Docker版
 
 ```shell
-$ docker run -d --name=wstunnel --hostname=wstunnel.example.com -p 8022 -p 8080 -restart always --env SERVER=example.com takuyao/wstunnel:latest
+$ docker run -d --name=wstunnel --hostname=wstunnel.example.com \
+	-p 8022 -p 8080 --restart always --env SERVER=example.com \
+	takuyao/wstunnel:latest
 ```
 
 このDockerイメージの転送先
@@ -57,7 +59,9 @@ $ docker run -d --name=wstunnel --hostname=wstunnel.example.com -p 8022 -p 8080 
 ### クライアント側
 
 ```shell
-$ APIKEY=GoogleVisionAPIkey wstunnel -c -t 8022 --proxy http://proxy.example.com:8080/ wss://example.com:8022/
+$ APIKEY=GoogleVisionAPIkey wstunnel -c -t 8022 \
+	--proxy http://proxy.example.com:8080/ \
+	wss://example.com:8022/
 ```
 
 #### 接続例
