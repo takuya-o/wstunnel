@@ -1,3 +1,4 @@
+const debug = require('debug')('proxy-captcha');
 const globalTunnel = require('global-tunnel-ng');
 var urlParse = require('url').parse;
 
@@ -70,48 +71,52 @@ module.exports = (Server, Client) => {
     const uuid = require("machine-uuid");
     uuid((machineId) => {
       let conf = {};
+      // { protcol: "http:", host: "", port: 8080, proxyAuth: "user:pass" }
       if ( argv.proxy ) {
+        //proxyの場合 global-tunnel-ngを使う
         conf = tryParse( argv.proxy );
+        debug("Use OPTION %s:%d", conf.host, conf.port );
         if ( argv.c ) {
-          conf.proxyHttpsOptions =  {rejectUnauthorized: false};
-          process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+          conf.proxyHttpsOptions =  {rejectUnauthorized: false};//これはProxy用
+          process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";//こっちは中身用
         }
         globalTunnel.initialize(conf);
       } else {
+        //proxyなしの場合 Certの処理だけが使われる
         require("../lib/httpSetup").config(argv.proxy, argv.c)
       }
 
       let client = new Client()
-      if (argv.http) {
+      if (argv.http) {   //なんだ --httpオプションって Helpに無い
         client.setHttpOnly(true)
       }
 
       let wsHostUrl = argv._[0]
-      client.verbose()
+      client.verbose(); //tunnelの開始/close及びエラーlog出力
 
       let DefaultLocalAddr = "127.0.0.1"
       let localAddr
       let remoteAddr
       let toks = argv.t.split(":")
-      if (toks.length === 4) {
+      if (toks.length === 4) {          // local:loocalPort:remote:remotePort
         localAddr = `${toks[0]}:${toks[1]}`
         remoteAddr = `${toks[2]}:${toks[3]}`
       } else if (toks.length === 3) {
-        if (toks[0] === 'stdio') {
-          client.startStdio(wsHostUrl, remoteAddr, {'x-wstclient': machineId}, (err) => {
+        if (toks[0] === 'stdio') {   // stdio:xx:xx
+          client.startStdio(wsHostUrl, remoteAddr, {'x-wstclient': machineId}, (err) => { //remoteAddr=null
             if (err) {
               console.error(err)
               process.exit(1)
             }
           })
           return
-        } else {
-          localAddr = `${DefaultLocalAddr}:${toks[0]}`
+        } else { // localPort:remote:remotePort
+          localAddr = `${DefaultLocalAddr}:${toks[0]}`  //localhost:localPort
           remoteAddr = `${toks[1]}:${toks[2]}`
         }
-      } else if (toks.length === 1) {
-        localAddr = `${DefaultLocalAddr}:${toks[0]}`
-      }
+      } else if (toks.length === 1) {  // localPort
+        localAddr = `${DefaultLocalAddr}:${toks[0]}`    //localhost:localPort  remoteAddr=null
+      } // TODO: トークンが四つ以上で localAddr=null
       client.start(localAddr, wsHostUrl, remoteAddr, {'x-wstclient': machineId});
     })
   } else {

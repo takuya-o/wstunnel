@@ -2,3 +2,5 @@
 .idea/*
 compile/*
 node_modules/
+.env
+*~
